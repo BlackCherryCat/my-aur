@@ -47,7 +47,7 @@ jobs:
         uses: ./.github/actions/bump-aur
         with:
           version: ${{ steps.check.outputs.version }}
-          url: "https://github.com/Map1en/VRCX-0/releases/download/${{ steps.latest.outputs.release }}/VRCX-0_${{ steps.latest.outputs.release }}_linux_x86_64.deb"
+          url: "https://github.com/Map1en/VRCX-0/releases/download/${{ steps.latest.outputs.release }}/VRCX-0_${{ steps.latest.outputs.version }}_linux_x86_64.deb"
           pkgbuild: vrcx-0-bin/PKGBUILD
           srcinfo: vrcx-0-bin/.SRCINFO
 
