@@ -22,6 +22,7 @@ jobs:
           pacman -Syu --noconfirm git devtools curl jq openssh
           sudo useradd -m builder
           echo "builder ALL=(ALL) NOPASSWD: ALL" | sudo tee -a /etc/sudoers
+          git config --system --add safe.directory "${GITHUB_WORKSPACE}"
 
       - uses: actions/checkout@v7
 
@@ -53,9 +54,6 @@ jobs:
         if: steps.check.outputs.out_of_date == 'true'
         working-directory: ${{ github.workspace }}
         run: |
-          pwd
-          ls -lna
-          ls -lna ..
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${{ github.workflow }}/PKGBUILD" "${{ github.workflow }}/.SRCINFO"
