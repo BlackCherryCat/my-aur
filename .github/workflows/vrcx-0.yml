@@ -48,7 +48,7 @@ jobs:
         with:
           version: ${{ steps.check.outputs.version }}
           url: "https://github.com/Map1en/VRCX-0/releases/download/${{ steps.latest.outputs.release }}/VRCX-0_${{ steps.check.outputs.version }}_linux_x86_64.deb"
-          pkgbuild: vrcx-0-bin/PKGBUILD
+          pkgbuild: vrcx-0-bin/
           srcinfo: vrcx-0-bin/.SRCINFO
 
   aur_push:
