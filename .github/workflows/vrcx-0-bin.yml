@@ -51,6 +51,7 @@ jobs:
           dir: "${{ github.workflow }}/"
       - name: Commit & push
         if: steps.check.outputs.out_of_date == 'true'
+        working-directory: ${{ github.workspace }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
