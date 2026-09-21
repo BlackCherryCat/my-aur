@@ -1,4 +1,4 @@
-name: vrcx-0
+name: vrcx-0-bin
 
 on:
   schedule:
@@ -38,7 +38,7 @@ jobs:
         run: |
           ver="${{ steps.latest.outputs.release }}"
           ver="${ver#v}"
-          cur="$(sed -n "s/^pkgver='//p" vrcx-0-bin/PKGBUILD | sed "s/'\$//")"
+          cur="$(sed -n "s/^pkgver='//p" "${{ github.workflow }}/PKGBUILD" | sed "s/'\$//")"
           echo "version=${ver}" >> "$GITHUB_OUTPUT"
           [ "$ver" != "$cur" ] && echo "out_of_date=true" >> "$GITHUB_OUTPUT" || echo "out_of_date=false" >> "$GITHUB_OUTPUT"
 
@@ -48,7 +48,15 @@ jobs:
         with:
           version: ${{ steps.check.outputs.version }}
           url: "https://github.com/Map1en/VRCX-0/releases/download/${{ steps.latest.outputs.release }}/VRCX-0_${{ steps.check.outputs.version }}_linux_x86_64.deb"
-          dir: vrcx-0-bin/
+          dir: "${{ github.workflow }}/"
+      - name: Commit & push
+        if: steps.check.outputs.out_of_date == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${{ github.workflow }}/PKGBUILD" "${{ github.workflow }}/.SRCINFO"
+          git commit -m "Update to ${{ steps.check.outputs.version }}"
+          git push origin HEAD
 
   aur_push:
     needs: update
@@ -63,8 +71,8 @@ jobs:
       - name: Publish AUR package
         uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         with:
-          pkgname: vrcx-0-bin
-          pkgbuild: ./vrcx-0-bin/PKGBUILD
+          pkgname: ${{ github.workflow }}
+          pkgbuild: "./${{ github.workflow }}/PKGBUILD"
           commit_username: github-actions[bot]
           commit_email: 41898282+github-actions[bot]@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_KEY }}
