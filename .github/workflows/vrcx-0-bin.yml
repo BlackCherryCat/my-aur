@@ -54,6 +54,8 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           pwd
+          ls -lna
+          ls -lna ..
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${{ github.workflow }}/PKGBUILD" "${{ github.workflow }}/.SRCINFO"
