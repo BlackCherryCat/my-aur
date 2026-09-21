@@ -76,7 +76,7 @@ jobs:
         uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         with:
           pkgname: ${{ github.workflow }}
-          pkgbuild: "./${{ github.workflow }}/PKGBUILD"
+          asset_dir: "./${{ github.workflow }}"
           commit_username: github-actions[bot]
           commit_email: 41898282+github-actions[bot]@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_KEY }}
