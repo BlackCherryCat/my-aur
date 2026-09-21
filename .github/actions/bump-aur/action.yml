@@ -26,7 +26,7 @@ runs:
       run: |
         sed -i "s/^pkgver=.*/pkgver='${{ inputs.version }}'/" "${{ inputs.pkgbuild }}"
         sed -i "s/^sha256sums=.*/sha256sums=('${{ steps.sha.outputs.sha }}')/" "${{ inputs.pkgbuild }}"
-        sudo -u builder makepkg --printsrcinfo --pkgbuild "${{ inputs.pkgbuild }}" > "${{ inputs.srcinfo }}"
+        sudo -u builder makepkg --printsrcinfo -D "${{ inputs.pkgbuild }}" > "${{ inputs.srcinfo }}"
     - name: Commit & push
       shell: bash
       run: |
