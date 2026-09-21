@@ -53,6 +53,7 @@ jobs:
         if: steps.check.outputs.out_of_date == 'true'
         working-directory: ${{ github.workspace }}
         run: |
+          pwd
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${{ github.workflow }}/PKGBUILD" "${{ github.workflow }}/.SRCINFO"
