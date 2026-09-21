@@ -6,6 +6,8 @@ inputs:
     required: true
   url:
     required: true
+  dir:
+    required: true
   pkgbuild:
     required: true
   srcinfo:
