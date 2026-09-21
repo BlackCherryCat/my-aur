@@ -23,7 +23,7 @@ runs:
       shell: bash
       run: |
         sudo chown -R builder:builder "${GITHUB_WORKSPACE}"
-        sed -i "s/^pkgver=.*/pkgver='${{ inputs.version }}'/" ${{ inputs.pkgbuild }}
+        sed -i "s/^pkgver=.*/pkgver='${{ inputs.version }}'/" "${{ inputs.dir }}PKGBUILD"
         sed -i "s/^sha256sums=.*/sha256sums=('${{ steps.sha.outputs.sha }}')/" "${{ inputs.dir }}PKGBUILD"
         sudo -u builder makepkg --printsrcinfo -D ${{ inputs.dir }} > "${{ inputs.dir }}.SRCINFO"
     - name: Commit & push
