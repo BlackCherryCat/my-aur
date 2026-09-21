@@ -8,10 +8,6 @@ inputs:
     required: true
   dir:
     required: true
-  pkgbuild:
-    required: true
-  srcinfo:
-    required: true
 runs:
   using: composite
   steps:
@@ -26,9 +22,10 @@ runs:
     - name: Update files
       shell: bash
       run: |
+        sudo chown -R builder:builder ${{ inputs.dir }}
         sed -i "s/^pkgver=.*/pkgver='${{ inputs.version }}'/" ${{ inputs.pkgbuild }}
-        sed -i "s/^sha256sums=.*/sha256sums=('${{ steps.sha.outputs.sha }}')/" ${{ inputs.pkgbuild }}
-        sudo -u builder makepkg --printsrcinfo -D ${{ inputs.dir }} > "${{ inputs.srcinfo }}"
+        sed -i "s/^sha256sums=.*/sha256sums=('${{ steps.sha.outputs.sha }}')/" ${{ inputs.dir }}PKGBUILD
+        sudo -u builder makepkg --printsrcinfo -D ${{ inputs.dir }} > "${{ inputs.dir }}".SRCINFO
     - name: Commit & push
       shell: bash
       run: |
