@@ -1,0 +1,77 @@
+name: mindustry-sdl3-bin
+
+on:
+  schedule:
+    - cron: "30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mindustry-sdl3-bin
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    container: archlinux/archlinux:latest
+    steps:
+      - name: Setup
+        run: |
+          pacman -Syu --noconfirm git devtools curl jq openssh
+          sudo useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" | sudo tee -a /etc/sudoers
+          git config --system --add safe.directory "${GITHUB_WORKSPACE}"
+          pacman -S --noconfirm --needed \
+            java-environment libicns \
+            alsa-lib libappindicator hicolor-icon-theme webkit2gtk-4.1
+
+      - uses: actions/checkout@v7
+
+      - name: Get latest Anuken/Mindustry release
+        id: latest
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          owner: Anuken
+          repo: Mindustry
+          excludes: prerelease, draft
+
+      - name: Check if out of date
+        id: check
+        run: |
+          ver="${{ steps.latest.outputs.release }}"
+          ver="${ver#v}"
+          cur="$(sed -n 's/^pkgver=//p' mindustry-sdl3-bin/PKGBUILD | tr -d ' \"')"
+          echo "version=${ver}" >> "$GITHUB_OUTPUT"
+          if [ "$ver" != "$cur" ]; then echo "out_of_date=true" >> "$GITHUB_OUTPUT"; else echo "out_of_date=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Bump version, checksums and build
+        if: steps.check.outputs.out_of_date == 'true'
+        working-directory: mindustry-sdl3-bin
+        run: |
+          set -euo pipefail
+          version="${{ steps.check.outputs.version }}"
+          sed -i -E "s|^pkgver=.*|pkgver=${version}|" PKGBUILD
+          updpkgsums
+          makepkg --printsrcinfo > .SRCINFO
+          makepkg --printsrcinfo | diff - .SRCINFO
+          makepkg --noconfirm --skiplighter
+
+      - name: Commit & push to GitHub
+        if: steps.check.outputs.out_of_date == 'true'
+        run: |
+          set -euo pipefail
+          version="${{ steps.check.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mindustry-sdl3-bin/PKGBUILD mindustry-sdl3-bin/.SRCINFO
+          git commit -m "Update to ${version}"
+          git push origin HEAD
+
+      - name: Push to AUR mirror
+        if: ${{ secrets.AUR_SSH_KEY != '' && steps.check.outputs.out_of_date == 'true' }}
+        run: |
+          set -euo pipefail
+          git remote add aur "ssh://aur@aur.archlinux.org/mindustry-sdl3-bin.git" || true
+          git push aur HEAD
