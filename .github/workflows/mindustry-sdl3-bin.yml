@@ -57,7 +57,7 @@ jobs:
           sudo -u builder updpkgsums
           sudo -u builder makepkg --printsrcinfo > .SRCINFO
           sudo -u builder makepkg --printsrcinfo | diff - .SRCINFO
-          sudo -u builder makepkg --noconfirm --skiplighter
+          sudo -u builder makepkg --noconfirm
 
       - name: Commit & push to GitHub
         if: steps.check.outputs.out_of_date == 'true'
