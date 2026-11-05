@@ -54,7 +54,7 @@ jobs:
           version="${{ steps.check.outputs.version }}"
           sudo chown -R builder:builder "${GITHUB_WORKSPACE}"
           sed -i -E "s|^pkgver=.*|pkgver=${version}|" PKGBUILD
-          updpkgsums
+          sudo -u builder updpkgsums
           sudo -u builder makepkg --printsrcinfo > .SRCINFO
           sudo -u builder makepkg --printsrcinfo | diff - .SRCINFO
           sudo -u builder makepkg --noconfirm --skiplighter
