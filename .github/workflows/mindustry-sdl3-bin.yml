@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Setup
         run: |
-          pacman -Syu --noconfirm git devtools curl jq openssh
+          pacman -Syu --noconfirm git devtools curl jq openssh archlinux-packages
           sudo useradd -m builder
           echo "builder ALL=(ALL) NOPASSWD: ALL" | sudo tee -a /etc/sudoers
           git config --system --add safe.directory "${GITHUB_WORKSPACE}"
