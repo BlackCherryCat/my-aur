@@ -70,8 +70,10 @@ jobs:
           git push origin HEAD
 
       - name: Push to AUR mirror
-        if: ${{ secrets.AUR_SSH_KEY != '' && steps.check.outputs.out_of_date == 'true' }}
+        if: steps.check.outputs.out_of_date == 'true'
         run: |
           set -euo pipefail
-          git remote add aur "ssh://aur@aur.archlinux.org/mindustry-sdl3-bin.git" || true
-          git push aur HEAD
+          if [ -n "${AUR_SSH_KEY:-}" ]; then
+            git remote add aur "ssh://aur@aur.archlinux.org/mindustry-sdl3-bin.git" || true
+            git push aur HEAD
+          fi
