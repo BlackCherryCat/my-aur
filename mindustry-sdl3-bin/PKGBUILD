@@ -5,7 +5,7 @@
 
 _pkgname="mindustry"
 pkgname="mindustry-sdl3"
-pkgver=160.7
+pkgver=160.6
 pkgrel=1
 pkgdesc="SDL3 backend version of Mindustry."
 url="https://github.com/Anuken/Mindustry"
