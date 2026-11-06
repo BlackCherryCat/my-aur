@@ -26,7 +26,7 @@ jobs:
           echo "builder ALL=(ALL) NOPASSWD: ALL" | sudo tee -a /etc/sudoers
           git config --system --add safe.directory "${GITHUB_WORKSPACE}"
           pacman -S --noconfirm --needed \
-            java-environment libicns \
+            jdk17-openjdk libicns \
             alsa-lib hicolor-icon-theme
 
       - uses: actions/checkout@v7

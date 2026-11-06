@@ -18,7 +18,7 @@ depends=(
   'alsa-lib'
 )
 makedepends=(
-  "java-environment=${_java_ver:?}"
+  "jdk${_java_ver}-openjdk"
   'libicns'
 )
 
