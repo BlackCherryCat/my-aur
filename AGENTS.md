@@ -29,3 +29,8 @@ One-time setup:
 - `package()` extracts `data.tar.gz` (the `.deb` payload) with `bsdtar` into `$pkgdir`; makepkg downloads and unpacks the `.deb` into `$srcdir` automatically — do not add manual download/extraction steps.
 - `*.deb`, `*.pkg.tar.*`, `src/`, and `pkg/` are gitignored build leftovers — never commit them.
 - Runtime deps are `webkit2gtk-4.1` and `libappindicator` (what the upstream Tauri deb needs); `conflicts`/`provides` handle the source package `vrcx-0`.
+
+## KSX deploy-aur `.gitignore` gotcha
+
+- The KSX `github-actions-deploy-aur` action mirrors `asset_dir` with `rsync --filter=':- .gitignore'` (gitignore-exclude style: include-all, exclude-listed). A `.gitignore` using `*` + negation lines makes rsync copy **0 files** (`ERROR: PKGBUILD does not exist` in the deploy makepkg), even though the gradle build succeeds. Use a **plain exclude list** (no `*`, no `!` negation). Keep this note in the asset_dir `.gitignore` so future manual bumps don't regress it.
+- `aur_push` (the KSX deploy) only runs when the workflow sees `out_of_date=true` (a `pkgver` bump vs the latest upstream release), so a deploy can't be exercised live without a new Anuken/Mindustry release. Verify the mirror by reproducing the rsync filter locally rather than forcing a fake-version deploy.
