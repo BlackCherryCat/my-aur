@@ -94,7 +94,7 @@ END
       "$pkgdir/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps/$pkgname.png"
   done
 
-  install -Dm644 mindustry-sdl3.install "$pkgdir/etc/pacman.d/mindustry-sdl3.install"
+  install -Dm644 "$srcdir/mindustry-sdl3.install" "$pkgdir/etc/pacman.d/mindustry-sdl3.install"
 
   install -Dm755 "desktop/build/libs/Mindustry.jar" "$pkgdir/usr/share/java/$pkgname/$pkgname.jar"
 }
