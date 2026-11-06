@@ -14,6 +14,8 @@ concurrency:
 
 jobs:
   update:
+    outputs:
+      out_of_date: ${{ steps.check.outputs.out_of_date }}
     runs-on: ubuntu-latest
     container: archlinux/archlinux:latest
     steps:
@@ -70,11 +72,24 @@ jobs:
           git commit -m "Update to ${version}"
           git push origin HEAD
 
-      - name: Push to AUR mirror
-        if: steps.check.outputs.out_of_date == 'true'
-        run: |
-          set -euo pipefail
-          if [ -n "${AUR_SSH_KEY:-}" ]; then
-            git remote add aur "ssh://aur@aur.archlinux.org/mindustry-sdl3-bin.git" || true
-            git push aur HEAD
-          fi
+  aur_push:
+    needs: update
+    if: needs.update.outputs.out_of_date == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Publish AUR package
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
+        with:
+          pkgname: mindustry-sdl3-bin
+          asset_dir: "./mindustry-sdl3-bin"
+          commit_username: github-actions[bot]
+          commit_email: 41898282+github-actions[bot]@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_KEY }}
+          commit_message: Update to ${{ github.ref_name }}
+          ssh_keyscan_types: rsa,ecdsa,ed25519
