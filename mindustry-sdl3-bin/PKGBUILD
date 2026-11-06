@@ -11,6 +11,7 @@ pkgdesc="SDL3 backend version of Mindustry."
 url="https://github.com/Anuken/Mindustry"
 license=('GPL-3.0-only')
 arch=('any')
+options=(!debug)
 
 depends=(
   'alsa-lib'
@@ -92,7 +93,7 @@ END
       "$pkgdir/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps/$pkgname.png"
   done
 
-  install=mindustry-sdl3.install
+  install mindustry-sdl3.install
 
-  install -Dm755 "desktop/build/libs/Mindustry.jar" "$pkgdir/usr/share/java/$pkgbase/$pkgname.jar"
+  install -Dm755 "desktop/build/libs/Mindustry.jar" "$pkgdir/usr/share/java/$pkgname/$pkgname.jar"
 }
