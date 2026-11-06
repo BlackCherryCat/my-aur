@@ -94,8 +94,8 @@ END
       "$pkgdir/usr/share/icons/hicolor/${icon_size}x${icon_size}/apps/$pkgname.png"
   done
 
-  # $srcdir is makepkg's src/ subdir; the .install file is a tracked file in the repo root (srcdir/..)
-  install -Dm644 "../mindustry-sdl3.install" "$pkgdir/etc/pacman.d/mindustry-sdl3.install"
+  # .install file is a tracked file in the repo root (srcdir/..); makepkg extracts sources into $srcdir
+  install -Dm644 "$srcdir/../mindustry-sdl3.install" "$pkgdir/etc/pacman.d/mindustry-sdl3.install"
 
   install -Dm755 "desktop/build/libs/Mindustry.jar" "$pkgdir/usr/share/java/$pkgname/$pkgname.jar"
 }
