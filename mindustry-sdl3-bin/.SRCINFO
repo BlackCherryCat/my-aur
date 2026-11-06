@@ -5,7 +5,7 @@ pkgbase = mindustry-sdl3-bin
 	url = https://github.com/Anuken/Mindustry
 	arch = any
 	license = GPL-3.0-only
-	makedepends = java-environment=17
+	makedepends = jdk17-openjdk
 	makedepends = libicns
 	depends = alsa-lib
 	options = !debug
