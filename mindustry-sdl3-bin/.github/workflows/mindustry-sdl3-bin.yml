@@ -1,0 +1,112 @@
+name: mindustry-sdl3-bin
+
+# Builds the SDL3 jar (with the SDL3 patches) and publishes it as a GitHub
+# Release asset on tag v<pkgver>. The PKGBUILD (release-asset model) sources
+# that jar; the KSX github-actions-deploy-aur deployment then runs makepkg
+# against asset_dir, which downloads the jar and builds the AUR package.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    # safety net: re-publish the current version's jar if its release asset
+    # was deleted (the PKGBUILD would otherwise fail to download it)
+    - cron: '0 6 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pkgver from PKGBUILD
+        id: pkgver
+        shell: bash
+        run: echo "pkgver=$(grep -m1 '^pkgver=' PKGBUILD | cut -d= -f2 | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if the release asset already exists
+        id: asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver="${{ steps.pkgver.outputs.pkgver }}"
+          name="mindustry-sdl3-bin-${ver}.jar"
+          # gh is preinstalled on GitHub-hosted runners
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${ver}/assets" \
+              -q --raw-output ".any(.name==\"${name}\")" 2>/dev/null | grep -q '^true$'; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release asset '${name}' already exists; skipping build."
+            exit 0
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare source (clone v<ver> + apply patches)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver="${{ steps.pkgver.outputs.pkgver }}"
+          cd "$GITHUB_WORKSPACE"
+          rm -rf build-src
+          mkdir build-src && cd build-src
+          git clone --depth 1 --branch v${ver} https://github.com/Anuken/Mindustry.git Mindustry
+          git clone --depth 1 --branch v${ver} https://github.com/Anuken/Arc.git Arc
+          cd Mindustry
+          ln -sf ../Arc Arc
+
+          # Mindustry needs archash=v<ver>; LWJGL's released 3.4.2 (Maven Central)
+          # not the -SNAPSHOT, so patch Arc to use the Central version.
+          sed -E -e '/archash/s&archash=.*$&'"archash=v${ver}&" -i gradle.properties
+          sed -i 's/versions.lwjgl = "3.4.2-SNAPSHOT"/versions.lwjgl = "3.4.2"/' Arc/build.gradle
+
+          patch -Np1 < 0001-mindustry-use-sdl3-backend.patch
+          ( cd ../Arc && patch -Np1 < 0002-arc-sdl3-preserve-wheel-delta.patch )
+
+      - name: Build SDL3 jar
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk
+        run: |
+          set -euo pipefail
+          cd Mindustry
+          ./gradlew --warning-mode=all --no-daemon dist -Pbuildversion="${{ steps.pkgver.outputs.pkgver }}" desktop:dist
+          # name the jar after the release asset the PKGBUILD expects
+          mv desktop/build/libs/Mindustry.jar \
+             "desktop/build/libs/mindustry-sdl3-bin-${{ steps.pkgver.outputs.pkgver }}.jar"
+
+      - name: Compute jar sha256
+        id: sha
+        run: |
+          set -euo pipefail
+          jar="desktop/build/libs/mindustry-sdl3-bin-${{ steps.pkgver.outputs.pkgver }}.jar"
+          echo "sha256=$(sha256sum "$jar" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release asset on tag v${{ steps.pkgver.outputs.pkgver }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.pkgver.outputs.pkgver }}
+          names: mindustry-sdl3-bin-${{ steps.pkgver.outputs.pkgver }}.jar
+          files: desktop/build/libs/mindustry-sdl3-bin-${{ steps.pkgver.outputs.pkgver }}.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update PKGBUILD jar sha256sums
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver="${{ steps.pkgver.outputs.pkgver }}"
+          jar_sha=$(cat "$GITHUB_OUTPUT" | grep '^sha256=' | cut -d= -f2)
+          line=$(grep -n "^sha256sums=" PKGBUILD | head -1 | cut -d: -f1)
+          sed -i "${line}s#.*#sha256sums=('${jar_sha}'   # mindustry-sdl3-bin-${ver}.jar (compiled SDL3, published as a release asset))#" PKGBUILD
+          if git diff --quiet -- PKGBUILD; then
+            echo "::notice::PKGBUILD jar sha256 unchanged; nothing to commit."
+          else
+            git add PKGBUILD
+            git -c user.name="${GITHUB_ACTOR}" -c user.email="${GITHUB_ACTOR}@users.noreply.github.com" \
+              commit -m "Update jar sha256 for mindustry-sdl3-bin-${ver}.jar"
+            git push origin main
+          fi
