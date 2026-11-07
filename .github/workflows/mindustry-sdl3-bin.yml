@@ -111,9 +111,8 @@ jobs:
         run: |
           set -euo pipefail
           ver="${{ steps.pkgver.outputs.pkgver }}"
-          jar_sha=$(grep '^sha256=' "$GITHUB_OUTPUT" | cut -d= -f2)
-          line=$(grep -n "^sha256sums=" PKGBUILD | head -1 | cut -d: -f1)
-          sed -i "${line}s#.*#sha256sums=('${jar_sha}'   # mindustry-sdl3-bin-${ver}.jar (compiled SDL3, published as a release asset))#" PKGBUILD
+          jar_sha="${{ steps.sha.outputs.sha256 }}"
+          sed -i "/^sha256sums=/s|.*|sha256sums=('${jar_sha}'   # mindustry-sdl3-bin-${ver}.jar (compiled SDL3, published as a release asset)|" PKGBUILD
 
       - name: Publish AUR package (KSX github-actions-deploy-aur)
         uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
