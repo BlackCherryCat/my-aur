@@ -1,21 +1,33 @@
 name: mindustry-sdl3-bin
 
-# Builds the SDL3 jar (with the SDL3 patches) and publishes it as a GitHub
-# Release asset on tag v<pkgver>. The PKGBUILD (release-asset model) sources
-# that jar; the KSX github-actions-deploy-aur deployment then runs makepkg
-# against asset_dir, which downloads the jar and builds the AUR package.
+# Builds the SDL3 jar (with the SDL3 patches), publishes it as a GitHub
+# Release asset on tag v<pkgver>, then publishes the AUR package via KSX
+# github-actions-deploy-aur. The deploy action runs makepkg against
+# asset_dir=./mindustry-sdl3-bin, which downloads the freshly-published jar
+# (from the release-asset PKGBUILD source) and uploads the .pkg.tar to AUR.
+#
+# Everything is one job so the deploy sees the jar that was just published
+# and the PKGBUILD sha256sums that were just updated (a separate deploy job
+# would check out the repo at run start and miss both).
 on:
   push:
     branches:
       - main
   workflow_dispatch:
   schedule:
-    # safety net: re-publish the current version's jar if its release asset
-    # was deleted (the PKGBUILD would otherwise fail to download it)
+    # safety net: rebuild + republish + redeploy if the jar release asset was deleted
+    # (the PKGBUILD would otherwise fail to download it). Skips silently if it exists.
     - cron: '0 6 * * *'
 
+permissions:
+  contents: write
+
+concurrency:
+  group: mindustry-sdl3-bin
+  cancel-in-progress: true
+
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +38,6 @@ jobs:
         run: echo "pkgver=$(grep -m1 '^pkgver=' PKGBUILD | cut -d= -f2 | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
       - name: Skip if the release asset already exists
-        id: asset
         shell: bash
         run: |
           set -euo pipefail
@@ -61,7 +72,7 @@ jobs:
 
           # Mindustry needs archash=v<ver>; LWJGL's released 3.4.2 (Maven Central)
           # not the -SNAPSHOT, so patch Arc to use the Central version.
-          sed -E -e '/archash/s&archash=.*$&'"archash=v${ver}&" -i gradle.properties
+          sed -E -e '/archash/s&archash=.*$&'archash=v${ver}&' -i gradle.properties
           sed -i 's/versions.lwjgl = "3.4.2-SNAPSHOT"/versions.lwjgl = "3.4.2"/' Arc/build.gradle
 
           patch -Np1 < 0001-mindustry-use-sdl3-backend.patch
@@ -110,3 +121,16 @@ jobs:
               commit -m "Update jar sha256 for mindustry-sdl3-bin-${ver}.jar"
             git push origin main
           fi
+
+      - name: Publish AUR package (KSX github-actions-deploy-aur)
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
+        with:
+          pkgname: mindustry-sdl3-bin
+          asset_dir: "./mindustry-sdl3-bin"
+          commit_username: github-actions[bot]
+          commit_email: 41898282+github-actions[bot]@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_KEY }}
+          commit_message: Update to ${{ steps.pkgver.outputs.pkgver }}
+          ssh_keyscan_types: rsa,ecdsa,ed25519
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
