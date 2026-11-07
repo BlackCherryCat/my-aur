@@ -78,8 +78,8 @@ jobs:
           sed -E -e '/archash/s&archash=.*$&archash=v${ver}&' -i gradle.properties
           sed -i 's/versions.lwjgl = "3.4.2-SNAPSHOT"/versions.lwjgl = "3.4.2"/' Arc/build.gradle
 
-          patch -Np1 < 0001-mindustry-sdl3-backend.patch
-          ( cd ../Arc && patch -Np1 < 0002-arc-sdl3-preserve-wheel-delta.patch )
+          patch -Np1 < "$GITHUB_WORKSPACE/mindustry-sdl3-bin/0001-mindustry-use-sdl3-backend.patch"
+          ( cd ../Arc && patch -Np1 < "$GITHUB_WORKSPACE/mindustry-sdl3-bin/0002-arc-sdl3-preserve-wheel-delta.patch" )
 
       - name: Build SDL3 jar
         run: |
