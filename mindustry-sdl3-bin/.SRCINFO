@@ -13,7 +13,7 @@ pkgbase = mindustry-sdl3-bin
 	source = icon.icns::https://github.com/Anuken/Mindustry/raw/v160.7/core/assets/icons/icon.icns
 	source = mindustry-sdl3-bin.install
 	sha256sums = d6aaf70aae4caec034b8e57382e6aefbddb07efa7ef8f4af5a161adc7cebe76a
-	sha256sums = 16fcae782b13a8460e631d265c505f56393acd14700b016904744bd44aa290eb
+	sha256sums = 80aa3f58c2211188e9586b1ef47892956b0bb4042dcea7ea29e954b996ea786f
 	sha256sums = 7e5451947f90876b86ca8a96a285cdddaa7b426dbe71767c03c66dcfe2ddb966
 
 pkgname = mindustry-sdl3-bin
