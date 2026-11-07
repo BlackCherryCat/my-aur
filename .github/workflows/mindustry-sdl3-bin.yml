@@ -50,12 +50,15 @@ jobs:
           set -euo pipefail
           ver="${{ steps.pkgver.outputs.pkgver }}"
           name="mindustry-sdl3-bin-${ver}.jar"
-          # gh is preinstalled on GitHub-hosted runners
-          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${ver}/assets" \
-              -q --raw-output ".any(.name==\"${name}\")" 2>/dev/null | grep -q '^true$'; then
+          mkdir -p build-src
+          # Reuse the published asset if it exists (also fetched for the sha
+          # step); otherwise the build steps below build + publish it.
+          if curl -sfL -o "build-src/${name}" \
+              "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${ver}/${name}"; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Release asset '${name}' already exists; skipping build."
           else
+            rm -f "build-src/${name}"
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -105,11 +108,7 @@ jobs:
           set -euo pipefail
           name="mindustry-sdl3-bin-${{ steps.pkgver.outputs.pkgver }}.jar"
           if [[ "${{ steps.check.outputs.skip }}" == "true" ]]; then
-            # reuse the published asset
-            mkdir -p build-src
-            curl -sfL -o "build-src/${name}" \
-              "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${{ steps.pkgver.outputs.pkgver }}/${name}"
-            jar="build-src/${name}"
+            jar="build-src/${name}" # fetched by the check step
           else
             jar="build-src/Mindustry/desktop/build/libs/${name}"
           fi
