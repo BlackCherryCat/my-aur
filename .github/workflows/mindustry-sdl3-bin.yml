@@ -2,10 +2,12 @@ name: mindustry-sdl3-bin
 
 # Builds the SDL3 jar (with the SDL3 patches), publishes it as a GitHub
 # Release asset on tag v<pkgver>, then publishes the AUR package via KSX
-# github-actions-deploy-aur. The deploy action clones the AUR package into a
+# github-actions-deploy-aur. If the release asset for v<pkgver> already
+# exists, the build is skipped and the existing asset is reused (the jar sha
+# is recomputed from it). The deploy action clones the AUR package into a
 # temp dir, mirrors asset_dir=./mindustry-sdl3-bin into it, runs makepkg
-# (which downloads the freshly-published jar from the release-asset PKGBUILD
-# source), and uploads the .pkg.tar to AUR.
+# (which downloads the jar from the release-asset PKGBUILD source), and
+# uploads the .pkg.tar to AUR (skips the commit when nothing changed).
 #
 # Everything is one job so the deploy sees the jar that was just published.
 # The PKGBUILD jar sha256sums are updated in the working tree (NOT pushed):
@@ -17,8 +19,9 @@ on:
       - main
   workflow_dispatch:
   schedule:
-    # safety net: rebuild + republish + redeploy if the jar release asset was deleted
-    # (the PKGBUILD would otherwise fail to download it). Skips silently if it exists.
+    # safety net: if the jar release asset was deleted, rebuild + republish +
+    # redeploy; otherwise reuse the existing asset (KSX skips the AUR commit
+    # when nothing changed).
     - cron: '0 6 * * *'
 
 permissions:
@@ -41,6 +44,7 @@ jobs:
         run: echo "pkgver=$(grep -m1 '^pkgver=' PKGBUILD | cut -d= -f2 | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
       - name: Skip if the release asset already exists
+        id: check
         shell: bash
         run: |
           set -euo pipefail
@@ -49,17 +53,21 @@ jobs:
           # gh is preinstalled on GitHub-hosted runners
           if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${ver}/assets" \
               -q --raw-output ".any(.name==\"${name}\")" 2>/dev/null | grep -q '^true$'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Release asset '${name}' already exists; skipping build."
-            exit 0
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up JDK 17
+        if: steps.check.outputs.skip != 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Prepare source (clone v<ver> + apply patches)
+        if: steps.check.outputs.skip != 'true'
         shell: bash
         working-directory: mindustry-sdl3-bin
         run: |
@@ -82,6 +90,7 @@ jobs:
           ( cd ../Arc && patch -Np1 < "$GITHUB_WORKSPACE/mindustry-sdl3-bin/0002-arc-sdl3-preserve-wheel-delta.patch" )
 
       - name: Build SDL3 jar
+        if: steps.check.outputs.skip != 'true'
         run: |
           set -euo pipefail
           cd build-src/Mindustry
@@ -94,10 +103,20 @@ jobs:
         id: sha
         run: |
           set -euo pipefail
-          jar="build-src/Mindustry/desktop/build/libs/mindustry-sdl3-bin-${{ steps.pkgver.outputs.pkgver }}.jar"
+          name="mindustry-sdl3-bin-${{ steps.pkgver.outputs.pkgver }}.jar"
+          if [[ "${{ steps.check.outputs.skip }}" == "true" ]]; then
+            # reuse the published asset
+            mkdir -p build-src
+            curl -sfL -o "build-src/${name}" \
+              "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${{ steps.pkgver.outputs.pkgver }}/${name}"
+            jar="build-src/${name}"
+          else
+            jar="build-src/Mindustry/desktop/build/libs/${name}"
+          fi
           echo "sha256=$(sha256sum "$jar" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Publish release asset on tag v${{ steps.pkgver.outputs.pkgver }}
+        if: steps.check.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.pkgver.outputs.pkgver }}
