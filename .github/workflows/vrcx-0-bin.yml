@@ -64,7 +64,6 @@ jobs:
 
   aur_push:
     needs: update
-    if: needs.update.outputs.out_of_date == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
